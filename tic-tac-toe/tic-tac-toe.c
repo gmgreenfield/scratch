@@ -2,56 +2,68 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define L 3
-#define H 3
+#define L   3
+#define H   3
 
 typedef enum {
-    CELL_BLANK,
-    CELL_X,
-    CELL_Y
+    USER = 0,
+    COMPUTER = 1
+} Id;
+
+typedef enum {
+    BLANK = 10,
+    X = 20,
+    O = 30;
 } Cell;
 
-typedef enum {
-    SYMBOL_X,
-    SYMBOL_O
-} Symbol;
-
 typedef struct {
-    Symbol player_symbol;
-    bool is_computer;
+    const char symbol;
+    const bool is_computer;
 } Player;
 
 typedef enum {
-    IN_PROGRESS,
-    DRAW,
-    USER_WINS,
-    COMPUTER_WINS
+    IN_PROGRESS = 100,
+    WINNER_USER = 200,
+    WINNER_COMPUTER = 300,
+    DRAW = 400
 } Status;
 
 typedef struct {
-    int board[L][H];
+    int board[L][H]; /* See #define L, H */
     int move_number;
     Status game_status;
-    Player user;
-    Player computer;
-    Player *winner;
-    Player *current_turn;
+    Player player[1]; /* See #define PLAYER_USER, PLAYER_COMPUTER */
 } State;
 
-void prompt_player_symbol_select(State *s) {
-    printf("Play as X or O? [X]: ");
+void state_init(State *s) {
+    printf("Tic Tac Toe v0.1, Graham Greenfield\n\n");
+
+    s->move_number = 0;
+    s->game_status = Status.IN_PROGRESS;
+
+    char user_symbol;
+    printf("Play as X or O (X/O)? [X]: ");
     scanf("%c", &user_symbol);
 
-    if (*user_symbol != ('X' || 'O')) {
-        *user_symbol = 'X';
-        *computer_symbol = 'O';
+    if (user_symbol == 'O') {
+        s->player[Id.USER]->player_symbol = 'O';
+        s->player[Id.USER]->is_computer = false;
+        s->player[Id.COMPUTER]->player_symbol = 'X';
+        s->player[Id.COMPUTER]->is_computer = true;
+    } else {
+        s->player[Id.USER]->player_symbol = 'X';
+        s->player[Id.USER]->is_computer = false;
+        s->player[Id.COMPUTER]->player_symbol = 'O';
+        s->player[Id.COMPUTER]->is_computer = true;
     }
+
+    printf("Player X moves first.\n");
 }
 
-bool prompt_repeat_game(void) {
+bool prompt_repeat(void) {
     bool repeat_game = false;
 
-    printf("Play again (Y/N)? [Y]: ");
+    printf("Play again (Y/N)? [N]: ");
     char p;
     scanf("%c", &p);
 
@@ -66,18 +78,27 @@ bool prompt_repeat_game(void) {
     return repeat_game;
 }
 
+void prompt_game_grid(State *s) {
+}
+
+void state_player_move(State *s) {
+}
+
+void state_eval_move(State *s) {
+}
+
 bool tic_tac_toe(void) {
-    Player player_user = {.symbol = 'X', .is_computer = false};
-    Player player_computer = {.symbol = 'Y', .is_computer = true};
     State s;
 
-    printf("Tic Tac Toe v0.1, Graham Greenfield\n\n");
+    state_init(&s);
 
-    prompt_player_symbol_select(&s);
+    do {
+        prompt_game_grid(&s);
+        state_player_move(&s);
+        state_eval_move(&s);
+    } while (s.game_status == IN_PROGRESS);
 
-    printf("Player X moves first.\n");
-
-    return prompt_repeat_game();
+    return prompt_repeat();
 }
 
 int main(void) {
