@@ -39,22 +39,27 @@ void state_init(State *s) {
     printf("Tic Tac Toe v0.1, Graham Greenfield\n\n");
 
     s->move_number = 0;
-    s->game_status = Status.IN_PROGRESS;
+    s->game_status = IN_PROGRESS;
 
     char user_symbol;
     printf("Play as X or O (X/O)? [X]: ");
     scanf("%c", &user_symbol);
+    user_symbol = toupper(user_symbol);
+
+    if (user_symbol != ('X' || 'O')) {
+        user_symbol == 'X';
+    }
 
     if (user_symbol == 'O') {
-        s->player[Id.USER]->player_symbol = 'O';
-        s->player[Id.USER]->is_computer = false;
-        s->player[Id.COMPUTER]->player_symbol = 'X';
-        s->player[Id.COMPUTER]->is_computer = true;
+        s->player[USER]->player_symbol = 'O';
+        s->player[USER]->is_computer = false;
+        s->player[COMPUTER]->player_symbol = 'X';
+        s->player[COMPUTER]->is_computer = true;
     } else {
-        s->player[Id.USER]->player_symbol = 'X';
-        s->player[Id.USER]->is_computer = false;
-        s->player[Id.COMPUTER]->player_symbol = 'O';
-        s->player[Id.COMPUTER]->is_computer = true;
+        s->player[USER]->player_symbol = 'X';
+        s->player[USER]->is_computer = false;
+        s->player[COMPUTER]->player_symbol = 'O';
+        s->player[COMPUTER]->is_computer = true;
     }
 
     printf("Player X moves first.\n");
