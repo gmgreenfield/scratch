@@ -24,7 +24,21 @@ typedef struct {
 } state;
 
 bool read_line(char *buffer, int size) {
-    return fgets(buffer, size, stdin) != NULL;
+    for (;;) {
+        if (fgets(buffer, size, stdin) == NULL) {
+            return false;
+        }
+
+        if (strchr(buffer, '\n') != NULL || feof(stdin)) {
+            return true;
+        }
+
+        int ch;
+        while ((ch = getchar()) != '\n' && ch != EOF) {}
+
+        printf("Input too long. Please try again: ");
+        fflush(stdout);
+    }
 }
 
 cell player_cell(const state *s, id who) {
@@ -153,7 +167,6 @@ bool moves_left(const state *s) {
 }
 
 /* +10 if the computer wins, -10 if the user wins, 0 otherwise. */
-
 int evaluate(const state *s) {
     cell computer = player_cell(s, COMPUTER);
     for (int i = 0; i < L; i++) {
