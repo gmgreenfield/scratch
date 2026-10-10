@@ -140,33 +140,39 @@ bool player_move(state *s) {
     }
 }
 
-/*
- * Evaluate board: +10 if AI wins, -10 if Human wins, 0 for draw/no winner.
- */
+bool moves_left(const state *s) {
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                return true;
+            }
+        }
+    }
 
-int evaluate(state *s) {
-    /* Check rows and columns */
+    return false;
+}
+
+/* +10 if the computer wins, -10 if the user wins, 0 otherwise. */
+
+int evaluate(const state *s) {
+    cell computer = player_cell(s, COMPUTER);
     for (int i = 0; i < L; i++) {
-        if (s->board[i][0] == s->board[i][1] && s->board[i][1] == s->board[i][2]) {
-            if (s->board[i][0] == CELL_O) return 10;
-            if (s->board[i][0] == CELL_X) return -10;
+        if (s->board[i][0] != CELL_BLANK &&
+            s->board[i][0] == s->board[i][1] &&
+            s->board[i][1] == s->board[i][2]) {
+            return s->board[i][0] == computer ? 10 : -10;
         }
-        if (s->board[0][i] == s->board[1][i] && s->board[1][i] == s->board[2][i]) {
-            if (s->board[0][i] == CELL_O) return 10;
-            if (s->board[0][i] == CELL_X) return -10;
+        if (s->board[0][i] != CELL_BLANK &&
+            s->board[0][i] == s->board[1][i] &&
+            s->board[1][i] == s->board[2][i]) {
+            return s->board[0][i] == computer ? 10 : -10;
         }
     }
-
-    /* Check diagonals */
-    if (s->board[0][0] == s->board[1][1] && s->board[1][1] == s->board[2][2]) {
-        if (s->board[0][0] == CELL_O) return 10;
-        if (s->board[0][0] == CELL_X) return -10;
+    if (s->board[1][1] != CELL_BLANK &&
+        ((s->board[0][0] == s->board[1][1] && s->board[1][1] == s->board[2][2]) ||
+         (s->board[0][2] == s->board[1][1] && s->board[1][1] == s->board[2][0]))) {
+        return s->board[1][1] == computer ? 10 : -10;
     }
-    if (s->board[0][2] == s->board[1][1] && s->board[1][1] == s->board[2][0]) {
-        if (s->board[0][2] == CELL_O) return 10;
-        if (s->board[0][2] == CELL_X) return -10;
-    }
-
     return 0;
 }
 
@@ -227,7 +233,17 @@ bool move(state *s, char symbol) {
 }
 
 void eval_move(state *s) {
-    (void)s;
+    int score = evaluate(s);
+
+    if (score == 10) {
+        s->game_status = WINNER_COMPUTER;
+    } else if (score == -10) {
+        s->game_status = WINNER_USER;
+    } else if (!moves_left(s)) {
+        s->game_status = DRAW;
+    } else {
+        s->game_status = IN_PROGRESS;
+    }
 }
 
 bool tic_tac_toe(void) {
