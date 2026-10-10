@@ -1,0 +1,4 @@
+/tic-tac-toe
+*.o
+*.dSYM/
+.DS_Store
