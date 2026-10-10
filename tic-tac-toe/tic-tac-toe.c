@@ -205,23 +205,28 @@ int minimax(state *s, int depth, bool is_max) {
 void computer_move(state *s) {
     int best_score = -1000, best_row = -1, best_col = -1;
 
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < H; j++) {
-            if (s->board[i][j] == CELL_BLANK) {
-                s->board[i][j] = CELL_O;
+    cell mark = player_cell(s, COMPUTER);
+
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                s->board[row][col] = mark;
                 int score = minimax(s, 0, false);
-                s->board[i][j] = CELL_BLANK;
+                s->board[row][col] = CELL_BLANK;
 
                 if (score > best_score) {
                     best_score = score;
-                    best_row = i;
-                    best_col = j;
+                    best_row = row;
+                    best_col = col;
                 }
             }
         }
     }
 
-    s->board[best_row][best_col] = CELL_O;
+    if (best_row != -1) {
+        s->board[best_row][best_col] = mark;
+        printf("\nComputer plays %d,%d.\n", best_row, best_col);
+    }
 }
 
 bool move(state *s, char symbol) {
