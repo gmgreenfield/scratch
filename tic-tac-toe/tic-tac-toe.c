@@ -23,11 +23,15 @@ typedef struct {
     player player[2];
 } state;
 
+bool read_line(char *buffer, int size) {
+    return fgets(buffer, size, stdin) != NULL;
+}
+
 cell player_cell(const state *s, id who) {
     return s->player[who].symbol == 'X' ? CELL_X : CELL_O;
 }
 
-void init(state *s) {
+bool init(state *s) {
     printf("Tic Tac Toe v0.1, Graham Greenfield\n\n");
 
     s->move = 0;
@@ -39,9 +43,17 @@ void init(state *s) {
         }
     }
 
+    char input[128];
     char user_symbol = 'X';
+
     printf("Play as X or O (X/O)? [X]: ");
-    scanf("%c", &user_symbol);
+    fflush(stdout);
+
+    if (!read_line(input, sizeof input)) {
+        return false;
+    }
+
+    sscanf(input, " %c", &user_symbol);
     user_symbol = (char)toupper((unsigned char)user_symbol);
 
     if (user_symbol != 'X' && user_symbol != 'O') {
@@ -52,25 +64,24 @@ void init(state *s) {
     s->player[COMPUTER].symbol = user_symbol == 'X' ? 'O' : 'X';
 
     printf("Player X moves first.\n");
+
+    return true;
 }
 
 bool prompt_repeat(void) {
-    bool repeat_game = false;
+    char input[128];
+    char answer = 'N';
 
     printf("Play again (Y/N)? [N]: ");
-    char p;
-    scanf("%c", &p);
-    p = toupper(p);
+    fflush(stdout);
 
-    if (p != 'Y' && p != 'N') {
-        return repeat_game;
+    if (!read_line(input, sizeof input)) {
+        return false;
     }
 
-    if (p == 'Y') {
-        repeat_game = true;
-    }
+    sscanf(input, " %c", &answer);
 
-    return repeat_game;
+    return toupper((unsigned char)answer) == 'Y';
 }
 
 void game_grid(const state *s) {
@@ -95,22 +106,37 @@ void game_grid(const state *s) {
     }
 }
 
-void player_move(state *s) {
+bool player_move(state *s) {
+    char input[128];
 
-prompt:
-    ;
-    printf("\nYour move: Select a cell id (eg. 1,2 or 0,0)? ");
-
-    int x, y;
-    scanf("%d,%d", &x, &y);
-
-    if (x >= 0 && x < L && y >= 0 && y < H && s->board[x][y] == CELL_BLANK) {
-        s->board[x][y] = CELL_X;
-        if(s->player[USER].symbol == 'O') {
-            s->board[x][y] = CELL_O;
+    for (;;) {
+        printf("\nYour move: Enter row,column (each 0-2, e.g. 1,2): ");
+        fflush(stdout);
+        if (!read_line(input, sizeof input)) {
+            return false;
         }
-    } else {
-        goto prompt;
+
+        char row_char, col_char, extra;
+
+        if (sscanf(input, " %c , %c %c", &row_char, &col_char, &extra) != 2 ||
+            row_char < '0' || row_char > '2' ||
+            col_char < '0' || col_char > '2') {
+            printf("Invalid coordinates. Use row,column with values from 0 to 2.\n");
+            continue;
+        }
+
+        int row = row_char - '0';
+        int col = col_char - '0';
+
+        if (s->board[row][col] != CELL_BLANK) {
+            printf("That cell is occupied. Choose an empty cell.\n");
+            continue;
+
+        }
+
+        s->board[row][col] = player_cell(s, USER);
+
+        return true;
     }
 }
 
@@ -188,13 +214,16 @@ void computer_move(state *s) {
     s->board[best_row][best_col] = CELL_O;
 }
 
-void move(state *s, char sym) {
+bool move(state *s, char symbol) {
     game_grid(s);
-    if (s->player[USER].symbol == sym) {
-        player_move(s);
-    } else {
-        computer_move(s);
+
+    if (s->player[USER].symbol == symbol) {
+        return player_move(s);
     }
+
+    computer_move(s);
+
+    return true;
 }
 
 void eval_move(state *s) {
@@ -204,12 +233,18 @@ void eval_move(state *s) {
 bool tic_tac_toe(void) {
     state s;
 
-    init(&s);
+    if (!init(&s)) {
+        return false;
+    }
 
     do {
-        move(&s, 'X');
+        if (!move(&s, 'X')) {
+            return false;
+        }
         eval_move(&s);
-        move(&s, 'O');
+        if (!move(&s, 'O')) {
+            return false;
+        }
         eval_move(&s);
     } while (s.game_status == IN_PROGRESS);
 
