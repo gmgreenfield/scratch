@@ -73,21 +73,24 @@ bool prompt_repeat(void) {
     return repeat_game;
 }
 
-void game_grid(state *s) {
-    int cell = 0;
-    for (int l = 0; l < L; l++) {
-        for (int h = 0; h < H; h++) {
-            bool empty = (s->board[l][h] == CELL_BLANK);
+void game_grid(const state *s) {
+    putchar('\n');
 
-            if (!empty) {
-                printf("%c ", (s->board[l][h] == CELL_X ? 'X' : 'O'));
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                printf(" %d,%d ", row, col);
             } else {
-                printf("%d ", cell);
+                printf("  %c  ", s->board[row][col] == CELL_X ? 'X' : 'O');
             }
 
-            if (cell++ % 3) {
-                putchar('\n');
-            }
+            if (col < H - 1) putchar('|');
+        }
+
+        putchar('\n');
+
+        if (row < L - 1) {
+            printf("-----+-----+-----\n");
         }
     }
 }
