@@ -262,26 +262,37 @@ bool tic_tac_toe(void) {
         return false;
     }
 
-    do {
-        if (!move(&s, 'X')) {
+    while (s.game_status == IN_PROGRESS) {
+        char symbol = (((s.move % 2) == 0) ? 'X' : 'O');
+
+        if (!move(&s, symbol)) {
             return false;
         }
+
+        s.move++;
+
         eval_move(&s);
-        if (!move(&s, 'O')) {
-            return false;
-        }
-        eval_move(&s);
-    } while (s.game_status == IN_PROGRESS);
+    }
+
+    game_grid(&s);
+
+    if (s.game_status == WINNER_USER) {
+        printf("\nYou win!\n");
+    } else if (s.game_status == WINNER_COMPUTER) {
+        printf("\nComputer wins!\n");
+    } else {
+        printf("\nIt's a draw!\n");
+    }
 
     return prompt_repeat();
 }
 
 int main(void) {
-    bool replay = false;
+    bool play_again = false;
 
     do {
-        replay = tic_tac_toe();
-    } while (replay == true);
+        play_again = tic_tac_toe();
+    } while (play_again == true);
 
     return 0;
 }
