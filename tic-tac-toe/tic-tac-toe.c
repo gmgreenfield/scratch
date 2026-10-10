@@ -178,24 +178,28 @@ int evaluate(const state *s) {
 
 int minimax(state *s, int depth, bool is_max) {
     int score = evaluate(s);
-    if (score == 10) return (score - depth);    /* Prefer quicker wins */
-    if (score == -10) return (score + depth);   /* Prefer delayed losses */
-    if (depth == 9) return 0;                   /* Draw */
+    if (score == 10) return score - depth;  /* Prefer quicker wins. */
+    if (score == -10) return score + depth; /* Prefer delayed losses. */
+    if (!moves_left(s)) return 0;
 
-    if (is_max) { /* AI's turn */
-        int best = -1000;
-        for (int i = 0; i < L; i++) {
-            for (int j = 0; j < H; j++) {
-                if (s->board[i][j] == CELL_BLANK) {
-                    s->board[i][j] = CELL_O;
-                    best = (best > minimax(s, depth + 1, false)) ? best : minimax(s, depth + 1, false);
-                    s->board[i][j] = CELL_BLANK; /* Backtrack */
+    int best = is_max ? -1000 : 1000;
+
+    cell mark = player_cell(s, is_max ? COMPUTER : USER);
+
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                s->board[row][col] = mark;
+                int candidate = minimax(s, depth + 1, !is_max);
+                s->board[row][col] = CELL_BLANK;
+                if ((is_max && candidate > best) || (!is_max && candidate < best)) {
+                    best = candidate;
                 }
             }
         }
-        return best;
     }
-    return 0;
+
+    return best;
 }
 
 void computer_move(state *s) {
