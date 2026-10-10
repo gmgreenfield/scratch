@@ -23,29 +23,35 @@ typedef struct {
     player player[2];
 } state;
 
+cell player_cell(const state *s, id who) {
+    return s->player[who].symbol == 'X' ? CELL_X : CELL_O;
+}
+
 void init(state *s) {
     printf("Tic Tac Toe v0.1, Graham Greenfield\n\n");
 
     s->move = 0;
     s->game_status = IN_PROGRESS;
 
-    char user_symbol;
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            s->board[row][col] = CELL_BLANK;
+        }
+    }
+
+    char user_symbol = 'X';
     printf("Play as X or O (X/O)? [X]: ");
     scanf("%c", &user_symbol);
-    user_symbol = toupper(user_symbol);
+    user_symbol = (char)toupper((unsigned char)user_symbol);
 
     if (user_symbol != 'X' && user_symbol != 'O') {
         user_symbol = 'X';
     }
 
-    s->player[USER].symbol = 'X';
-    s->player[COMPUTER].symbol = 'O';
-    if (user_symbol == 'O') {
-        s->player[USER].symbol = 'O';
-        s->player[COMPUTER].symbol = 'X';
-    }
+    s->player[USER].symbol = user_symbol;
+    s->player[COMPUTER].symbol = user_symbol == 'X' ? 'O' : 'X';
 
-    printf("player X moves first.\n");
+    printf("Player X moves first.\n");
 }
 
 bool prompt_repeat(void) {
