@@ -1,11 +1,10 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
 
-#define L   3
-#define H   3
+#define L 3
+#define H 3
 
 typedef enum { USER = 0, COMPUTER = 1 } id;
 
@@ -18,199 +17,295 @@ typedef enum {
 } status;
 
 typedef struct {
-    int board[L][H]; /* See #define L, H */
+    cell board[L][H];
     int move;
     status game_status;
-    player player[1]; /* See #define PLAYER_USER, PLAYER_COMPUTER */
+    player player[2];
 } state;
 
-void init(state *s) {
+bool read_line(char *buffer, int size) {
+    for (;;) {
+        if (fgets(buffer, size, stdin) == NULL) {
+            return false;
+        }
+
+        if (strchr(buffer, '\n') != NULL || feof(stdin)) {
+            return true;
+        }
+
+        int ch;
+        while ((ch = getchar()) != '\n' && ch != EOF) {}
+
+        printf("Input too long. Please try again: ");
+        fflush(stdout);
+    }
+}
+
+cell player_cell(const state *s, id who) {
+    return s->player[who].symbol == 'X' ? CELL_X : CELL_O;
+}
+
+bool init(state *s) {
     printf("Tic Tac Toe v0.1, Graham Greenfield\n\n");
 
-    s->move_number = 0;
+    s->move = 0;
     s->game_status = IN_PROGRESS;
 
-    char user_symbol;
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            s->board[row][col] = CELL_BLANK;
+        }
+    }
+
+    char input[128];
+    char user_symbol = 'X';
+
     printf("Play as X or O (X/O)? [X]: ");
-    scanf("%c", &user_symbol);
-    user_symbol = toupper(user_symbol);
+    fflush(stdout);
 
-    if (user_symbol != ('X' || 'O')) {
-        user_symbol == 'X';
+    if (!read_line(input, sizeof input)) {
+        return false;
     }
 
-    s->player[USER]->player_symbol = 'X';
-    s->player[COMPUTER]->player_symbol = 'O';
-    if (user_symbol == 'O') {
-        s->player[USER]->player_symbol = 'O';
-        s->player[COMPUTER]->player_symbol = 'X';
+    sscanf(input, " %c", &user_symbol);
+    user_symbol = (char)toupper((unsigned char)user_symbol);
+
+    if (user_symbol != 'X' && user_symbol != 'O') {
+        user_symbol = 'X';
     }
 
-    printf("player X moves first.\n");
+    s->player[USER].symbol = user_symbol;
+    s->player[COMPUTER].symbol = user_symbol == 'X' ? 'O' : 'X';
+
+    printf("Player X moves first.\n");
+
+    return true;
 }
 
 bool prompt_repeat(void) {
-    bool repeat_game = false;
+    char input[128];
+    char answer = 'N';
 
     printf("Play again (Y/N)? [N]: ");
-    char p;
-    scanf("%c", &p);
-    p = toupper(p);
+    fflush(stdout);
 
-    if (p != ('Y' || 'N')) {
-        return repeat_game;
+    if (!read_line(input, sizeof input)) {
+        return false;
     }
 
-    if (p == 'Y') {
-        repeat_game = true;
-    }
+    sscanf(input, " %c", &answer);
 
-    return repeat_game;
+    return toupper((unsigned char)answer) == 'Y';
 }
 
-void game_grid(state *s) {
-    int cell = 0;
-    for (l = 0; l < L: l++) {
-        for (h = 0; h < H; h++) {
-            bool empty = (s->board[l][h] == CELL_EMPTY);
+void game_grid(const state *s) {
+    putchar('\n');
 
-            if (!empty) {
-                printf("%c ", (s->board[l][h] == CELL_X ? 'X' : 'O'));
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                printf(" %d,%d ", row, col);
             } else {
-                printf("%d ", cell);
+                printf("  %c  ", s->board[row][col] == CELL_X ? 'X' : 'O');
             }
 
-            if (cell++ % 3) {
-                putchar('\n');
-            }
+            if (col < H - 1) putchar('|');
+        }
+
+        putchar('\n');
+
+        if (row < L - 1) {
+            printf("-----+-----+-----\n");
         }
     }
 }
 
-void player_move(state *s) {
+bool player_move(state *s) {
+    char input[128];
 
-prompt:
-    printf("\nYour move: Select a cell id (eg. 1,2 or 0,0)? ");
-
-    int x, y;
-    scanf("%d,%d", &x, &y);
-
-    if (isdigit(x) && isdigit(y) && s->board[x,y] == CELL_BLANK) {
-        s->board[x,y] == CELL_X;
-        if(s->player[USER]->symbol == 'O') {
-            s->board[x,y] == CELL_O;
+    for (;;) {
+        printf("\nYour move: Enter row,column (each 0-2, e.g. 1,2): ");
+        fflush(stdout);
+        if (!read_line(input, sizeof input)) {
+            return false;
         }
-    } else {
-        goto prompt;
+
+        char row_char, col_char, extra;
+
+        if (sscanf(input, " %c , %c %c", &row_char, &col_char, &extra) != 2 ||
+            row_char < '0' || row_char > '2' ||
+            col_char < '0' || col_char > '2') {
+            printf("Invalid coordinates. Use row,column with values from 0 to 2.\n");
+            continue;
+        }
+
+        int row = row_char - '0';
+        int col = col_char - '0';
+
+        if (s->board[row][col] != CELL_BLANK) {
+            printf("That cell is occupied. Choose an empty cell.\n");
+            continue;
+
+        }
+
+        s->board[row][col] = player_cell(s, USER);
+
+        return true;
     }
 }
 
-/*
- * Evaluate board: +10 if AI wins, -10 if Human wins, 0 for draw/no winner.
- */
+bool moves_left(const state *s) {
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                return true;
+            }
+        }
+    }
 
-int evaluate(state *s) {
-    /* Check rows and columns */
+    return false;
+}
+
+/* +10 if the computer wins, -10 if the user wins, 0 otherwise. */
+int evaluate(const state *s) {
+    cell computer = player_cell(s, COMPUTER);
     for (int i = 0; i < L; i++) {
-        if (s->board[i][0] == s->board[i][1] && s->board[i][1] == s->board[i][2]) {
-            if (s->board[i][0] == CELL_O) return 10;
-            if (s->board[i][0] == CELL_X) return -10;
+        if (s->board[i][0] != CELL_BLANK &&
+            s->board[i][0] == s->board[i][1] &&
+            s->board[i][1] == s->board[i][2]) {
+            return s->board[i][0] == computer ? 10 : -10;
         }
-        if (s->board[0][i] == s->board[1][i] && s->board[1][i] == s->board[2][i]) {
-            if (s->board[0][i] == CELL_O) return 10;
-            if (s->board[0][i] == CELL_X) return -10;
+        if (s->board[0][i] != CELL_BLANK &&
+            s->board[0][i] == s->board[1][i] &&
+            s->board[1][i] == s->board[2][i]) {
+            return s->board[0][i] == computer ? 10 : -10;
         }
     }
-
-    /* Check diagonals */
-    if (s->board[0][0] == s->board[1][1] && s->board[1][1] == s->board[2][2]) {
-        if (s->board[0][0] == CELL_O) return 10;
-        if (s->board[0][0] == CELL_X) return -10;
+    if (s->board[1][1] != CELL_BLANK &&
+        ((s->board[0][0] == s->board[1][1] && s->board[1][1] == s->board[2][2]) ||
+         (s->board[0][2] == s->board[1][1] && s->board[1][1] == s->board[2][0]))) {
+        return s->board[1][1] == computer ? 10 : -10;
     }
-    if (s->board[0][2] == s->board[1][1] && s->board[1][1] == s->board[2][0]) {
-        if (s->board[0][2] == CELL_O) return 10;
-        if (s->board[0][2] == CELL_X) return -10;
-    }
-
     return 0;
 }
 
 int minimax(state *s, int depth, bool is_max) {
-    int score = evaulate(s->board[L][H]);
-    if (score == 10) return (score - depth);    /* Prefer quicker wins */
-    if (score == -10) return (score + depth);   /* Prefer delayed losses */
-    if (depth == 9) return 0;                   /* Draw */
+    int score = evaluate(s);
+    if (score == 10) return score - depth;  /* Prefer quicker wins. */
+    if (score == -10) return score + depth; /* Prefer delayed losses. */
+    if (!moves_left(s)) return 0;
 
-    if (is_max) { /* AI's turn */
-        int best = -1000;
-        for (int i = 0; i < L; i++) {
-            for (int j = 0; j < H; j++) {
-                if (s->board[i][j] = CELL_BLANK) {
-                    s->board[i][j] = CELL_O;
-                    best = (best > minimax(&s, depth + 1, false)) ? best : minimax(&s, depth + 1, false);
-                    s->board[i][j] = CELL_BLANK; /* Backtrack */
+    int best = is_max ? -1000 : 1000;
+
+    cell mark = player_cell(s, is_max ? COMPUTER : USER);
+
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                s->board[row][col] = mark;
+                int candidate = minimax(s, depth + 1, !is_max);
+                s->board[row][col] = CELL_BLANK;
+                if ((is_max && candidate > best) || (!is_max && candidate < best)) {
+                    best = candidate;
                 }
             }
         }
-        return best;
     }
+
+    return best;
 }
 
-void computer_move(state *s, int depth, bool is_max) {
+void computer_move(state *s) {
     int best_score = -1000, best_row = -1, best_col = -1;
 
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < H; j++) {
-            if (s->board[i][j] == CELL_BLANK) {
-                s->board[i][j] == CELL_O;
-                int score = minimax(&s, 0, false);
-                s->board[i][j] = CELL_BLANK;
+    cell mark = player_cell(s, COMPUTER);
 
-                if (score > bestScore) {
+    for (int row = 0; row < L; row++) {
+        for (int col = 0; col < H; col++) {
+            if (s->board[row][col] == CELL_BLANK) {
+                s->board[row][col] = mark;
+                int score = minimax(s, 0, false);
+                s->board[row][col] = CELL_BLANK;
+
+                if (score > best_score) {
                     best_score = score;
-                    best_row = i;
-                    best_col = j;
+                    best_row = row;
+                    best_col = col;
                 }
             }
         }
     }
 
-    s->board[best_row][best_col] = 'O';
-    return best_score;
+    if (best_row != -1) {
+        s->board[best_row][best_col] = mark;
+        printf("\nComputer plays %d,%d.\n", best_row, best_col);
+    }
 }
 
-void move(state *s, char sym) {
-    game_grid(&s);
-    if (s->player[USER]->symbol == sym) {
-        player_move(&s);
-    } else {
-        computer_move(&s);
+bool move(state *s, char symbol) {
+    game_grid(s);
+
+    if (s->player[USER].symbol == symbol) {
+        return player_move(s);
     }
+
+    computer_move(s);
+
+    return true;
 }
 
 void eval_move(state *s) {
+    int score = evaluate(s);
 
+    if (score == 10) {
+        s->game_status = WINNER_COMPUTER;
+    } else if (score == -10) {
+        s->game_status = WINNER_USER;
+    } else if (!moves_left(s)) {
+        s->game_status = DRAW;
+    } else {
+        s->game_status = IN_PROGRESS;
+    }
 }
 
 bool tic_tac_toe(void) {
     state s;
 
-    init(&s);
+    if (!init(&s)) {
+        return false;
+    }
 
-    do {
-        eval_move(&s, move(&s, 'X'));
-        eval_move(&s, move(&s, 'O'));
-    } while (s.game_status == IN_PROGRESS);
+    while (s.game_status == IN_PROGRESS) {
+        char symbol = (((s.move % 2) == 0) ? 'X' : 'O');
+
+        if (!move(&s, symbol)) {
+            return false;
+        }
+
+        s.move++;
+
+        eval_move(&s);
+    }
+
+    game_grid(&s);
+
+    if (s.game_status == WINNER_USER) {
+        printf("\nYou win!\n");
+    } else if (s.game_status == WINNER_COMPUTER) {
+        printf("\nComputer wins!\n");
+    } else {
+        printf("\nIt's a draw!\n");
+    }
 
     return prompt_repeat();
 }
 
 int main(void) {
-    bool replay = false;
+    bool play_again = false;
 
     do {
-        replay = tic_tac_toe();
-    } while (replay == true);
+        play_again = tic_tac_toe();
+    } while (play_again == true);
 
     return 0;
 }
