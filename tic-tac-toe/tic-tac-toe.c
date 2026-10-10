@@ -1,11 +1,10 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
 
-#define L   3
-#define H   3
+#define L 3
+#define H 3
 
 typedef enum { USER = 0, COMPUTER = 1 } id;
 
@@ -18,16 +17,16 @@ typedef enum {
 } status;
 
 typedef struct {
-    int board[L][H]; /* See #define L, H */
+    cell board[L][H];
     int move;
     status game_status;
-    player player[1]; /* See #define PLAYER_USER, PLAYER_COMPUTER */
+    player player[2];
 } state;
 
 void init(state *s) {
     printf("Tic Tac Toe v0.1, Graham Greenfield\n\n");
 
-    s->move_number = 0;
+    s->move = 0;
     s->game_status = IN_PROGRESS;
 
     char user_symbol;
@@ -35,15 +34,15 @@ void init(state *s) {
     scanf("%c", &user_symbol);
     user_symbol = toupper(user_symbol);
 
-    if (user_symbol != ('X' || 'O')) {
-        user_symbol == 'X';
+    if (user_symbol != 'X' && user_symbol != 'O') {
+        user_symbol = 'X';
     }
 
-    s->player[USER]->player_symbol = 'X';
-    s->player[COMPUTER]->player_symbol = 'O';
+    s->player[USER].symbol = 'X';
+    s->player[COMPUTER].symbol = 'O';
     if (user_symbol == 'O') {
-        s->player[USER]->player_symbol = 'O';
-        s->player[COMPUTER]->player_symbol = 'X';
+        s->player[USER].symbol = 'O';
+        s->player[COMPUTER].symbol = 'X';
     }
 
     printf("player X moves first.\n");
@@ -57,7 +56,7 @@ bool prompt_repeat(void) {
     scanf("%c", &p);
     p = toupper(p);
 
-    if (p != ('Y' || 'N')) {
+    if (p != 'Y' && p != 'N') {
         return repeat_game;
     }
 
@@ -70,9 +69,9 @@ bool prompt_repeat(void) {
 
 void game_grid(state *s) {
     int cell = 0;
-    for (l = 0; l < L: l++) {
-        for (h = 0; h < H; h++) {
-            bool empty = (s->board[l][h] == CELL_EMPTY);
+    for (int l = 0; l < L; l++) {
+        for (int h = 0; h < H; h++) {
+            bool empty = (s->board[l][h] == CELL_BLANK);
 
             if (!empty) {
                 printf("%c ", (s->board[l][h] == CELL_X ? 'X' : 'O'));
@@ -90,15 +89,16 @@ void game_grid(state *s) {
 void player_move(state *s) {
 
 prompt:
+    ;
     printf("\nYour move: Select a cell id (eg. 1,2 or 0,0)? ");
 
     int x, y;
     scanf("%d,%d", &x, &y);
 
-    if (isdigit(x) && isdigit(y) && s->board[x,y] == CELL_BLANK) {
-        s->board[x,y] == CELL_X;
-        if(s->player[USER]->symbol == 'O') {
-            s->board[x,y] == CELL_O;
+    if (x >= 0 && x < L && y >= 0 && y < H && s->board[x][y] == CELL_BLANK) {
+        s->board[x][y] = CELL_X;
+        if(s->player[USER].symbol == 'O') {
+            s->board[x][y] = CELL_O;
         }
     } else {
         goto prompt;
@@ -136,7 +136,7 @@ int evaluate(state *s) {
 }
 
 int minimax(state *s, int depth, bool is_max) {
-    int score = evaulate(s->board[L][H]);
+    int score = evaluate(s);
     if (score == 10) return (score - depth);    /* Prefer quicker wins */
     if (score == -10) return (score + depth);   /* Prefer delayed losses */
     if (depth == 9) return 0;                   /* Draw */
@@ -145,28 +145,29 @@ int minimax(state *s, int depth, bool is_max) {
         int best = -1000;
         for (int i = 0; i < L; i++) {
             for (int j = 0; j < H; j++) {
-                if (s->board[i][j] = CELL_BLANK) {
+                if (s->board[i][j] == CELL_BLANK) {
                     s->board[i][j] = CELL_O;
-                    best = (best > minimax(&s, depth + 1, false)) ? best : minimax(&s, depth + 1, false);
+                    best = (best > minimax(s, depth + 1, false)) ? best : minimax(s, depth + 1, false);
                     s->board[i][j] = CELL_BLANK; /* Backtrack */
                 }
             }
         }
         return best;
     }
+    return 0;
 }
 
-void computer_move(state *s, int depth, bool is_max) {
+void computer_move(state *s) {
     int best_score = -1000, best_row = -1, best_col = -1;
 
     for (int i = 0; i < L; i++) {
         for (int j = 0; j < H; j++) {
             if (s->board[i][j] == CELL_BLANK) {
-                s->board[i][j] == CELL_O;
-                int score = minimax(&s, 0, false);
+                s->board[i][j] = CELL_O;
+                int score = minimax(s, 0, false);
                 s->board[i][j] = CELL_BLANK;
 
-                if (score > bestScore) {
+                if (score > best_score) {
                     best_score = score;
                     best_row = i;
                     best_col = j;
@@ -175,21 +176,20 @@ void computer_move(state *s, int depth, bool is_max) {
         }
     }
 
-    s->board[best_row][best_col] = 'O';
-    return best_score;
+    s->board[best_row][best_col] = CELL_O;
 }
 
 void move(state *s, char sym) {
-    game_grid(&s);
-    if (s->player[USER]->symbol == sym) {
-        player_move(&s);
+    game_grid(s);
+    if (s->player[USER].symbol == sym) {
+        player_move(s);
     } else {
-        computer_move(&s);
+        computer_move(s);
     }
 }
 
 void eval_move(state *s) {
-
+    (void)s;
 }
 
 bool tic_tac_toe(void) {
@@ -198,8 +198,10 @@ bool tic_tac_toe(void) {
     init(&s);
 
     do {
-        eval_move(&s, move(&s, 'X'));
-        eval_move(&s, move(&s, 'O'));
+        move(&s, 'X');
+        eval_move(&s);
+        move(&s, 'O');
+        eval_move(&s);
     } while (s.game_status == IN_PROGRESS);
 
     return prompt_repeat();
